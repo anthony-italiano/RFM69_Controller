@@ -53,7 +53,7 @@ bool Storage::loadConfig(NodeConfig &cfg) {
   }
 
   cfg.node_addr = doc["node_addr"] | DEFAULT_NODE_ADDR;
-  cfg.node_name = String((const char *)doc["node_name"] | DEFAULT_NODE_NAME);
+  cfg.node_name = String(doc["node_name"] | DEFAULT_NODE_NAME);
 
   if (DEBUG_LEVEL & FS_DEBUG) {
     Serial.printf("[FS] Loaded node addr=%d name=%s\n", cfg.node_addr, cfg.node_name.c_str());
@@ -154,7 +154,8 @@ bool Storage::loadConfigForNode(uint8_t nodeId, NodeConfig &cfg) {
   }
 
   cfg.node_addr = doc["node_addr"] | nodeId;
-  cfg.node_name = String((const char *)doc["node_name"] | "TX" + String(nodeId));
+  String defaultName = String("TX") + String(nodeId);
+  cfg.node_name = String(doc["node_name"] | defaultName.c_str());
 
   if (DEBUG_LEVEL & FS_DEBUG)
     Serial.printf("[FS] Loaded TX#%d -> %s\n", cfg.node_addr, cfg.node_name.c_str());
