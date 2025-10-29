@@ -69,7 +69,7 @@ void setup() {
 
   // Setup tasks
   scheduler.addTask("radioRx", 5, [&] {
-    radio.taskRx();
+    radio.task(role);
   });
 
   scheduler.addTask("rejoin", 30, [&] {
