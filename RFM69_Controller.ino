@@ -17,12 +17,26 @@ RejoinFSM rejoinFSM;
 OledUI oledUI;
 PCFInput pcfInput;
 
+/*
 void setup() {
-  hidBegin();
-  delay(2000);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.begin(115200);
+  while (!Serial && millis() < 5000) {}
+  Serial.println("minimal setup reached");
+}
+*/
+
+
+
+
+
+void setup() {
   Serial.begin(115200);
   delay(800);
   Serial.println(F("Booting Rfm69UnifiedController..."));
+  hidBegin();
+  delay(2000);
 
   // 🔧 Explicitly start I2C before scanning
   Wire.begin();
