@@ -215,7 +215,7 @@ void OledUI::taskUpdate(Radio &radio, PCFInput &pcf, Role role) {
       {
         String delta = formatPinDelta(pcf.prev, pcf.pinsState);
         if (delta.length() > 0) {
-          display.print(F("Δ "));
+          display.print(F("I "));
           display.print(delta);
         }
       }
