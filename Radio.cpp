@@ -108,7 +108,7 @@ void Radio::taskTx(Role role) {
 
         Serial.printf("[TX0] Assignment #%d Denied (timeout)\n", requestedId);
         OledUI::showMessage(String("Assign ") + String(requestedId) + " Denied");
-        logError("Assignment #" + String(requestedId) + " Denied", false);
+        Storage::logError(ERR_ASSIGN_DENIED);
       }
       break;
     }
@@ -142,7 +142,7 @@ void Radio::taskTx(Role role) {
         const __FlashStringHelper* msg = getAssignErrorMsg(nack->reason);
         Serial.printf("[TX0] Assignment #%d Denied (%s)\n", requestedId, (const char*)msg);
         OledUI::showMessage("Denied: " + String((const char*)msg));
-        logError("Assignment #" + String(requestedId) + " Denied", false);
+        Storage::logError(ERR_ASSIGN_DENIED);
         txMode = TX_MODE_EPHEMERAL;
         awaitingAssignResponse = false;
       }
@@ -172,7 +172,7 @@ void Radio::taskRx(Role role) {
       if (changed) {
         String delta = formatPinDelta(prevPins[peerIndex], newPins);
         if (delta.length() > 0) {
-          Serial.printf("RX Δ [%d] %s\n", peerIndex, delta.c_str());
+          Serial.printf("RX [%d] %s\n", peerIndex, delta.c_str());
         }
         for (int pin = 0; pin < BTN_COUNT; pin++) {
           if (changed & (1 << pin)) {
