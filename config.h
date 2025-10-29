@@ -64,6 +64,7 @@ enum ErrorCodes {
   ERR_FS_MOUNT_FAIL = 103,
   ERR_CONFIG_MISSING = 104,
   ERR_JSON_PARSE = 203,
+  ERR_ASSIGN_DENIED = 204,
   ERR_UNKNOWN = 999
 };
 
@@ -73,6 +74,7 @@ static const ErrorDef ERROR_DEFS[] = {
   { ERR_FS_MOUNT_FAIL, "FS MOUNT FAIL", true },
   { ERR_CONFIG_MISSING, "CONFIG MISSING", false },
   { ERR_JSON_PARSE, "JSON PARSE", false },
+  { ERR_ASSIGN_DENIED, "ASSIGN DENIED", false },
   { ERR_UNKNOWN, "UNKNOWN", false }
 };
 #define ERROR_DEF_COUNT (sizeof(ERROR_DEFS) / sizeof(ERROR_DEFS[0]))
