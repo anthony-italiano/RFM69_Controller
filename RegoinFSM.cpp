@@ -1,4 +1,6 @@
 #include "RejoinFSM.h"
+#include "Packet.h"
+#include "Radio.h"
 #include "Config.h"
 
 // Called periodically to evaluate link state
