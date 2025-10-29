@@ -28,7 +28,7 @@ void PCFInput::taskPoll(Radio& radio) {
     radio.sendPacket(pkt, Role::TX);
 
     if (DEBUG_LEVEL & PCF_DEBUG) {
-      Serial.print(F("[PCF] TX Δ: "));
+      Serial.print(F("[PCF] TX I: "));
       for (int i = 0; i < 16; i++) {
         if (((val >> i) & 1) != ((prev >> i) & 1)) {
           Serial.print(PIN_NAMES[i]);
