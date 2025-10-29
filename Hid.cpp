@@ -251,11 +251,11 @@ void hidTask() {
 
 
         if (DEBUG_LEVEL & HID_DEBUG) {
-          Serial.print(F("[HID REPEAT] ΔX="));
+          Serial.print(F("[HID REPEAT] X="));
           Serial.print(dx_accum);
-          Serial.print(F(" ΔY="));
+          Serial.print(F(" Y="));
           Serial.print(dy_accum);
-          Serial.print(F(" ΔW="));
+          Serial.print(F(" W="));
           Serial.println(wheel_accum);
         }
       }
