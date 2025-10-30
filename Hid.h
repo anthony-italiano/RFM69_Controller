@@ -29,16 +29,17 @@ struct HidRuntime {
   bool pressed;
   uint32_t pressStart;
   uint32_t nextRepeat;
+  const HidBinding* binding;  // active binding for this node/pin (null when idle)
 };
 
-extern HidRuntime hidState[16];
+extern HidRuntime hidState[MAX_TX][BTN_COUNT];
 
 void hidBegin();
 void hidHandlePress(uint8_t pin);
 void hidHandleRelease(uint8_t pin);
 void hidTask();
-void hidHandlePressWithMap(uint8_t pin, HidBinding* map);
-void hidHandleReleaseWithMap(uint8_t pin, HidBinding* map);
+void hidHandlePressWithMap(uint8_t txIndex, uint8_t pin, HidBinding* map);
+void hidHandleReleaseWithMap(uint8_t txIndex, uint8_t pin);
 
 
 // TinyUSB HID object

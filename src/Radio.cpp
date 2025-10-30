@@ -178,9 +178,9 @@ void Radio::taskRx(Role role) {
           if (changed & (1 << pin)) {
             bool newState = (newPins >> pin) & 1;
             if (newState == PRESSED_LEVEL)
-              hidHandlePressWithMap(pin, hidMap[peerIndex]);
+              hidHandlePressWithMap(peerIndex, pin, hidMap[peerIndex]);
             else
-              hidHandleReleaseWithMap(pin, hidMap[peerIndex]);
+              hidHandleReleaseWithMap(peerIndex, pin);
           }
         }
       }

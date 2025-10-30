@@ -1,0 +1,11 @@
+{
+    "git.enableSmartCommit": true,
+    "git.confirmSync": true,
+    "git.fetchOnPull": true,
+    "git.branchValidationRegex": "^(main|master|develop){1}$|^(feature|bugfix|release|hotfix)/.+$",
+    "git.showProgress": true,
+    // Avoid opening COMMIT_EDITMSG editor; use SCM input box instead
+    "git.useEditorAsCommitInput": false,
+    // Optionally auto-push after commit; set to "none" if you prefer to push manually
+    "git.postCommitCommand": "push"
+}
