@@ -6,6 +6,6 @@
     "git.showProgress": true,
     // Avoid opening COMMIT_EDITMSG editor; use SCM input box instead
     "git.useEditorAsCommitInput": false,
-    // Optionally auto-push after commit; set to "none" if you prefer to push manually
-    "git.postCommitCommand": "push"
+    // Do not auto-push after commit to avoid long network waits; push manually when ready
+    "git.postCommitCommand": "none"
 }
