@@ -4,6 +4,7 @@
 // ====== Globals ======
 Adafruit_USBD_HID usb_hid;
 
+// Track per-node/per-pin HID runtime state so repeats work across multiple transmitters
 HidRuntime hidState[MAX_TX][BTN_COUNT];  // runtime state per node/pin
 
 // ====== Keyboard state ======
@@ -206,25 +207,30 @@ void hidBegin() {
 
 // ====== Wrappers for TX (single-node row 0) ======
 void hidHandlePress(uint8_t pin) {
+  if (pin >= BTN_COUNT) return;
   doPress(0, pin, hidMap[0][pin]);
 }
 
 void hidHandleRelease(uint8_t pin) {
+  if (pin >= BTN_COUNT) return;
   doRelease(0, pin);
 }
 
 // ====== Wrappers for RX multi-node ======
 void hidHandlePressWithMap(uint8_t txIndex, uint8_t pin, HidBinding *map) {
-  if (!map) return;
+  if (!map || pin >= BTN_COUNT) return;
   doPress(txIndex, pin, map[pin]);
 }
 
 void hidHandleReleaseWithMap(uint8_t txIndex, uint8_t pin) {
+  if (pin >= BTN_COUNT) return;
   doRelease(txIndex, pin);
 }
 
 // ====== Repeat Task ======
 void hidTask() {
+  // Iterate across every node/pin so RX repeats stay active for all transmitters
+  // Iterate every node/pin so simultaneous TX sources all generate repeats
   uint32_t now = millis();
 
   for (uint8_t tx = 0; tx < MAX_TX; ++tx) {
