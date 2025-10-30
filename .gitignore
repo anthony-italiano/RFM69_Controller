@@ -10,3 +10,11 @@
 build/
 debug/
 *.bin
+
+# Local nested repo for building picotool; ignore entirely to avoid submodule-like status noise
+picotool/
+
+# Common RP2040 artifacts
+*.uf2
+*.map
+*.bin.signed
