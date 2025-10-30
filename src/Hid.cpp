@@ -1,5 +1,7 @@
-#include "Hid.h"
 #include "Config.h"
+#include "Hid.h"
+#include <type_traits>
+#include <utility>
 
 // ====== Globals ======
 Adafruit_USBD_HID usb_hid;
@@ -25,6 +27,108 @@ static bool kbdDirty = false;
 static bool mouseDirty = false;
 static bool gpDirty = false;
 
+namespace {
+template <typename T, typename = void>
+struct has_isInitialized : std::false_type {};
+
+template <typename T>
+struct has_isInitialized<T, std::void_t<decltype(std::declval<T&>().isInitialized())>> : std::true_type {};
+
+template <typename T>
+void ensureTinyUSBStarted(T& device, std::true_type) {
+  if (!device.isInitialized()) {
+    device.begin(0);
+  }
+}
+
+template <typename T>
+void ensureTinyUSBStarted(T& device, std::false_type) {
+  device.begin(0);
+}
+}  // namespace
+
+// Helper to test or mutate aggregated HID reports without duplicating logic
+static bool keyInReport(uint8_t keycode) {
+  for (uint8_t i = 0; i < 6; ++i) {
+    if (kbd_report[i] == keycode) return true;
+  }
+  return false;
+}
+
+static bool addKeyToReport(uint8_t keycode) {
+  if (keyInReport(keycode)) return true;
+  for (uint8_t i = 0; i < 6; ++i) {
+    if (kbd_report[i] == 0) {
+      kbd_report[i] = keycode;
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool isKeyHeldElsewhere(uint8_t skipTx, uint8_t skipPin, uint8_t keycode) {
+  for (uint8_t tx = 0; tx < MAX_TX; ++tx) {
+    for (uint8_t pin = 0; pin < BTN_COUNT; ++pin) {
+      if (tx == skipTx && pin == skipPin) continue;
+      const HidRuntime &state = hidState[tx][pin];
+      if (!state.pressed || state.binding == nullptr) continue;
+      for (const HidAction &act : state.binding->actions) {
+        if (act.type == HID_KEYBOARD && act.code == keycode) return true;
+      }
+    }
+  }
+  return false;
+}
+
+static uint8_t modifiersHeldElsewhere(uint8_t skipTx, uint8_t skipPin) {
+  uint8_t mask = 0;
+  for (uint8_t tx = 0; tx < MAX_TX; ++tx) {
+    for (uint8_t pin = 0; pin < BTN_COUNT; ++pin) {
+      if (tx == skipTx && pin == skipPin) continue;
+      const HidRuntime &state = hidState[tx][pin];
+      if (!state.pressed || state.binding == nullptr) continue;
+      for (const HidAction &act : state.binding->actions) {
+        if (act.type == HID_KEYBOARD) {
+          mask |= act.modifiers;
+        }
+      }
+    }
+  }
+  return mask;
+}
+
+static bool isMouseButtonHeldElsewhere(uint8_t skipTx, uint8_t skipPin, uint8_t button) {
+  for (uint8_t tx = 0; tx < MAX_TX; ++tx) {
+    for (uint8_t pin = 0; pin < BTN_COUNT; ++pin) {
+      if (tx == skipTx && pin == skipPin) continue;
+      const HidRuntime &state = hidState[tx][pin];
+      if (!state.pressed || state.binding == nullptr) continue;
+      for (const HidAction &act : state.binding->actions) {
+        if (act.type == HID_MOUSE && act.code == button) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+static bool isGamepadButtonHeldElsewhere(uint8_t skipTx, uint8_t skipPin, uint8_t button) {
+  for (uint8_t tx = 0; tx < MAX_TX; ++tx) {
+    for (uint8_t pin = 0; pin < BTN_COUNT; ++pin) {
+      if (tx == skipTx && pin == skipPin) continue;
+      const HidRuntime &state = hidState[tx][pin];
+      if (!state.pressed || state.binding == nullptr) continue;
+      for (const HidAction &act : state.binding->actions) {
+        if (act.type == HID_GAMEPAD && act.code == button) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 // ====== Shared helpers ======
 static void doPress(uint8_t txIndex, uint8_t pin, const HidBinding &bind) {
   if (txIndex >= MAX_TX || pin >= BTN_COUNT) return;
@@ -41,11 +145,8 @@ static void doPress(uint8_t txIndex, uint8_t pin, const HidBinding &bind) {
 
     switch (act.type) {
       case HID_KEYBOARD:
-        for (int i = 0; i < 6; i++) {
-          if (kbd_report[i] == 0) {
-            kbd_report[i] = act.code;
-            break;
-          }
+        if (!addKeyToReport(act.code) && (DEBUG_LEVEL & HID_DEBUG)) {
+          Serial.println(F("[HID] keyboard rollover full; drop key"));
         }
         kbd_modifiers |= act.modifiers;
         kbdDirty = true;
@@ -128,51 +229,82 @@ static void doRelease(uint8_t txIndex, uint8_t pin) {
     if (act.type == HID_NONE) continue;
 
     switch (act.type) {
-      case HID_KEYBOARD:
-        for (int i = 0; i < 6; i++) {
-          if (kbd_report[i] == act.code) { kbd_report[i] = 0; }
+      case HID_KEYBOARD: {
+        bool removed = false;
+        if (!isKeyHeldElsewhere(txIndex, pin, act.code)) {
+          for (int i = 0; i < 6; ++i) {
+            if (kbd_report[i] == act.code) {
+              kbd_report[i] = 0;
+              removed = true;
+              kbdDirty = true;
+              break;
+            }
+          }
         }
-        kbd_modifiers &= ~act.modifiers;
-        kbdDirty = true;
         if (DEBUG_LEVEL & HID_DEBUG) {
           Serial.print(F("[HID] node="));
           Serial.print(txIndex);
           Serial.print(F(" pin="));
           Serial.print(pin);
           Serial.print(F(" release key="));
-          Serial.println(act.code);
+          Serial.print(act.code);
+          if (!removed) Serial.print(F(" (still held)"));
+          Serial.println();
         }
         break;
+      }
 
-      case HID_MOUSE:
-        mouse_buttons &= ~(1 << act.code);
-        mouseDirty = true;
+      case HID_MOUSE: {
+        uint8_t before = mouse_buttons;
+        if (!isMouseButtonHeldElsewhere(txIndex, pin, act.code)) {
+          mouse_buttons &= ~(1 << act.code);
+        }
+        if (mouse_buttons != before) {
+          mouseDirty = true;
+        }
         if (DEBUG_LEVEL & HID_DEBUG) {
           Serial.print(F("[HID] node="));
           Serial.print(txIndex);
           Serial.print(F(" pin="));
           Serial.print(pin);
           Serial.print(F(" release mouse="));
-          Serial.println(act.code);
+          Serial.print(act.code);
+          if (mouse_buttons == before) Serial.print(F(" (still held)"));
+          Serial.println();
         }
         break;
+      }
 
-      case HID_GAMEPAD:
-        gp_report.buttons &= ~(1 << act.code);
-        gpDirty = true;
+      case HID_GAMEPAD: {
+        uint32_t before = gp_report.buttons;
+        if (!isGamepadButtonHeldElsewhere(txIndex, pin, act.code)) {
+          gp_report.buttons &= ~(1UL << act.code);
+        }
+        if (gp_report.buttons != before) {
+          gpDirty = true;
+        }
         if (DEBUG_LEVEL & HID_DEBUG) {
           Serial.print(F("[HID] node="));
           Serial.print(txIndex);
           Serial.print(F(" pin="));
           Serial.print(pin);
           Serial.print(F(" release gamepad="));
-          Serial.println(act.code);
+          Serial.print(act.code);
+          if (gp_report.buttons == before) Serial.print(F(" (still held)"));
+          Serial.println();
         }
         break;
+      }
 
       default:
         break;
     }
+  }
+
+  uint8_t modifierMask = modifiersHeldElsewhere(txIndex, pin);
+  if (kbd_modifiers != modifierMask) {
+    kbd_modifiers = modifierMask;
+    kbdDirty = true;
   }
 }
 
@@ -184,9 +316,7 @@ void hidBegin() {
     TUD_HID_REPORT_DESC_GAMEPAD(HID_REPORT_ID(3))
   };
 
-  if (!TinyUSBDevice.isInitialized()) {
-    TinyUSBDevice.begin(0);
-  }
+  ensureTinyUSBStarted(TinyUSBDevice, has_isInitialized<Adafruit_USBD_Device>{});
 
   usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
   usb_hid.setPollInterval(2);
@@ -217,7 +347,7 @@ void hidHandleRelease(uint8_t pin) {
 }
 
 // ====== Wrappers for RX multi-node ======
-void hidHandlePressWithMap(uint8_t txIndex, uint8_t pin, HidBinding *map) {
+void hidHandlePressWithMap(uint8_t txIndex, uint8_t pin, const HidBinding *map) {
   if (!map || pin >= BTN_COUNT) return;
   doPress(txIndex, pin, map[pin]);
 }
@@ -230,8 +360,9 @@ void hidHandleReleaseWithMap(uint8_t txIndex, uint8_t pin) {
 // ====== Repeat Task ======
 void hidTask() {
   // Iterate across every node/pin so RX repeats stay active for all transmitters
-  // Iterate every node/pin so simultaneous TX sources all generate repeats
   uint32_t now = millis();
+  uint8_t repeatQueue[MAX_TX * BTN_COUNT];  // queue repeated keycodes for synthetic keypress pulses
+  size_t repeatCount = 0;
 
   for (uint8_t tx = 0; tx < MAX_TX; ++tx) {
     for (uint8_t pin = 0; pin < BTN_COUNT; ++pin) {
@@ -253,6 +384,9 @@ void hidTask() {
           switch (act.type) {
             case HID_KEYBOARD:
               kbdDirty = true;
+              if (repeatCount < MAX_TX * BTN_COUNT) {
+                repeatQueue[repeatCount++] = act.code;
+              }
               break;
 
             case HID_MOUSE:
@@ -301,8 +435,35 @@ void hidTask() {
     }
   }
 
-  // ====== Flush reports ======
+  if (repeatCount) {
+    kbdDirty = true;  // ensure base state is re-sent after synthetic repeats
+  }
+
   if (usb_hid.ready()) {
+    if (repeatCount) {
+      uint8_t snapshot[6];
+      memcpy(snapshot, kbd_report, sizeof(snapshot));
+
+      for (size_t idx = 0; idx < repeatCount; ++idx) {
+        uint8_t keycode = repeatQueue[idx];
+        uint8_t releaseReport[6];
+        memcpy(releaseReport, snapshot, sizeof(releaseReport));
+
+        bool removed = false;
+        for (int slot = 0; slot < 6; ++slot) {
+          if (releaseReport[slot] == keycode) {
+            releaseReport[slot] = 0;
+            removed = true;
+            break;
+          }
+        }
+        if (!removed) continue;  // key no longer held
+
+        usb_hid.keyboardReport(1, kbd_modifiers, releaseReport);
+        usb_hid.keyboardReport(1, kbd_modifiers, snapshot);
+      }
+    }
+
     if (kbdDirty) {
       usb_hid.keyboardReport(1, kbd_modifiers, kbd_report);
       kbdDirty = false;
@@ -331,7 +492,6 @@ void hidTask() {
     Serial.println(F("[HID] USB not ready for report"));
   }
 }
-
 // ====== TinyUSB callbacks ======
 extern "C" {
   void tud_mount_cb(void) {

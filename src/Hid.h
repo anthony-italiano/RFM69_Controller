@@ -38,7 +38,7 @@ void hidBegin();
 void hidHandlePress(uint8_t pin);
 void hidHandleRelease(uint8_t pin);
 void hidTask();
-void hidHandlePressWithMap(uint8_t txIndex, uint8_t pin, HidBinding* map);
+void hidHandlePressWithMap(uint8_t txIndex, uint8_t pin, const HidBinding* map);
 void hidHandleReleaseWithMap(uint8_t txIndex, uint8_t pin);
 
 

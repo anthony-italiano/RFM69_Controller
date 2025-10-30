@@ -1,18 +1,14 @@
 // config.h
 #pragma once
 #include <Arduino.h>
-#include "Hid.h"
 
 // ────────────────────────────────
 // General build configuration constants
 // ────────────────────────────────
 #define MAX_TX 4
 #define BTN_COUNT 16
-#define OLED_ADDR 0x3C
-#define RFM69_CS 16
-#define RFM69_INT 21
-#define RFM69_RST 17
-#define TX_NODE_ID 3
+
+#include "Hid.h"
 
 
 extern HidBinding hidMap[MAX_TX][BTN_COUNT];
@@ -29,6 +25,10 @@ extern HidBinding hidMap[MAX_TX][BTN_COUNT];
 // ────────────────────────────────
 // Hardware constants
 // ────────────────────────────────
+#define RFM69_CS 16
+#define RFM69_INT 21
+#define RFM69_RST 17
+#define TX_NODE_ID 3
 #define OLED_ADDR 0x3C
 #define PCF8575_ADDR 0x20
 
@@ -131,3 +131,4 @@ extern uint16_t PCF_INVERT_MASK;   // defined in Config.cpp
 #define HELLO_DELTA_MS 40
 #define ACK_WINDOW_MS 300
 #define LINK_DOWN_MS 5000
+
