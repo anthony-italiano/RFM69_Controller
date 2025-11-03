@@ -32,11 +32,11 @@ void setup() {
 
 
 void setup() {
+  hidBegin();
+  delay(2000);
   Serial.begin(115200);
   delay(800);
   Serial.println(F("Booting Rfm69UnifiedController..."));
-  hidBegin();
-  delay(2000);
 
   // 🔧 Explicitly start I2C before scanning
   Wire.begin();
