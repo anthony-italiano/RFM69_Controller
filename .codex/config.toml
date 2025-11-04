@@ -1,0 +1,17 @@
+# Codex workspace config (created to override a Linux /usr/bin/bash default on Windows)
+# If Codex attempted to call /usr/bin/bash, Windows will fail; this forces PowerShell instead.
+# Backup or delete this file to revert.
+
+# Path to shell program to run for tasks (use a Windows-native shell)
+shell = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+
+# Arguments passed to the shell. For PowerShell, use -NoLogo and -NoProfile.
+# Many extensions expect a POSIX shell, so some features may still require WSL.
+shellArgs = ["-NoLogo", "-NoProfile", "-Command"]
+
+# Optional: if the extension supports an explicit working directory key, set it.
+#workspaceCwd = "${workspaceFolder}"
+
+# NOTE: If you use WSL and prefer that, change `shell` to the full path of wsl.exe:
+# shell = "C:\\Windows\\System32\\wsl.exe"
+# shellArgs = ["-e", "bash", "-lc"]

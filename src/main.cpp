@@ -17,19 +17,6 @@ RejoinFSM rejoinFSM;
 OledUI oledUI;
 PCFInput pcfInput;
 
-/*
-void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
-  Serial.begin(115200);
-  while (!Serial && millis() < 5000) {}
-  Serial.println("minimal setup reached");
-}
-*/
-
-
-
-
 
 void setup() {
   hidBegin();
